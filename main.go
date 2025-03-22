@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"gokatan/roots"
 	"gokatan/roots/configuration"
 	"log"
 	"net/http"
@@ -10,7 +9,7 @@ import (
 
 func main() {
 
-    application := configuration.NewApplicationBuilder().withConfig().Boot();
+    configuration.NewApplicationBuilder().WithKernel().Boot();
 
     // Define a basic handler function
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

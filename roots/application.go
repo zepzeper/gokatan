@@ -1,8 +1,8 @@
 package app
 
 import (
-	"fmt"
-	"gokatan/config"
+    netHttp "net/http"
+    "gokatan/config"
 )
 
 type Application struct {
@@ -50,29 +50,9 @@ func (a *Application) Boot() {
     if !a.booted {
         a.booted = true
     }
-    err := a.loadEnvironment()
-    if err != nil {
-        fmt.Println("Error loading environment:", err)
-    }
-
-    // Retrieve the env.get function
-    envGetFunc, exists := a.Resolve("env.get")
-
-    if !exists {
-        fmt.Println("Environment getter not found")
-        return
-    }
-
-    if fn, ok := envGetFunc.(func(string, string) string); ok {
-        // Try getting an environment variable with a default value
-        testEnvVar := fn("APP_NAME", "default_value")
-        fmt.Println("Test Env Var Value:", testEnvVar)
-    } else {
-        fmt.Printf("Unexpected type: %T\n", envGetFunc)
-    }
 }
 
-func (a *Application) loadEnvironment() error {
+func (a *Application) LoadEnvironment() error {
     loader := config.NewEnvLoader(".env");
     err := loader.Load();
 
@@ -81,4 +61,27 @@ func (a *Application) loadEnvironment() error {
     });
 
     return err;
+}
+
+func handleRequest(a *Application, w netHttp.ResponseWriter, r *netHttp.Request) {
+
+    kernelInterface, exists := a.Resolve("http.kernel");
+
+    if !exists {
+        netHttp.Error(w, "Kernel not found", netHttp.StatusInternalServerError);
+        return;
+    }
+
+    kernel, ok := kernelInterface.(*http.Kernel)
+    if !ok {
+        netHttp.Error(w, "Invalid kernel type", netHttp.StatusInternalServerError)
+        return
+    }
+
+    err := kernel.Handle(r)
+
+    if err != nil {
+        netHttp.Error(w, "Internal Server Error", netHttp.StatusInternalServerError)
+        return
+    }
 }
