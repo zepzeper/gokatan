@@ -1,0 +1,37 @@
+package config
+
+import (
+    "github.com/joho/godotenv"
+    "os"
+)
+
+type EnvLoader struct {
+    path string
+    loaded bool
+}
+
+func NewEnvLoader(path string) *EnvLoader {
+    if path == "" {
+        path = ".env";
+    }
+
+    return &EnvLoader {
+        path: path,
+        loaded: false,
+    }
+}
+
+// loads environment variables from .env file
+func (e *EnvLoader) Load() error {
+    if e.loaded {
+        return nil
+    }
+
+    err := godotenv.Load(e.path);
+    if err != nil && !os.IsNotExist(err) {
+        return err;
+    }
+
+    e.loaded = true;
+    return nil;
+}
