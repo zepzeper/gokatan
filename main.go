@@ -2,16 +2,15 @@ package main
 
 import (
 	"fmt"
-	"gokatan/app"
+	"gokatan/roots"
+	"gokatan/roots/configuration"
 	"log"
 	"net/http"
 )
 
 func main() {
 
-    application := app.New();
-
-    application.Boot();
+    application := configuration.NewApplicationBuilder().withConfig().Boot();
 
     // Define a basic handler function
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -19,7 +18,7 @@ func main() {
     })
 
     // Start the server
-    port := ":8080"
+    port := ":8000"
     fmt.Printf("Starting server on port %s\n", port)
     err := http.ListenAndServe(port, nil)
     if err != nil {

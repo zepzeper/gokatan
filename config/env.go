@@ -35,3 +35,11 @@ func (e *EnvLoader) Load() error {
     e.loaded = true;
     return nil;
 }
+
+func Get(key string, defaultValue string) string {
+    if value, exists := os.LookupEnv(key); exists {
+        return value;
+    }
+
+    return defaultValue;
+}
