@@ -3,7 +3,10 @@ package router
 import (
 	"crypto/md5"
 	"fmt"
+	"gokatan/router/contracts"
 )
+
+var _ contracts.RouteCollection = (*RouteCollection)(nil)
 
 type RouteCollection struct {
     routes map[string]Route
@@ -25,6 +28,12 @@ func (rc *RouteCollection) Match(uri string, method string) *Route {
         if route.Matches(uri, method) {
             return &route
         }
+    }
+    return nil
+}
+func (rc *RouteCollection) GetByName(name string) contracts.Route {
+    if route, exists := rc.namedRoutes[name]; exists {
+        return &route
     }
     return nil
 }

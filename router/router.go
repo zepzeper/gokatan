@@ -1,35 +1,25 @@
 package router
 
 import (
-    "fmt"
-    "gokatan/support"
-    "net/http"
-    "slices"
-    "strings"
+	"fmt"
+	"gokatan/router/contracts"
+	"gokatan/support"
+	"net/http"
+	"slices"
+	"strings"
 )
 
 var VALID_METHODS = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"}
+
+var _ contracts.Router = (*Router)(nil)
 
 type Router struct {
     middleware map[string]interface{}
     middlewareGroups map[string][]interface{}
     middlewareAlias map[string]interface{}
     routes *RouteCollection
-    
 }
 
-type Route struct {
-    method string
-    uri string
-    controller string
-    action string
-    name string
-    collection *RouteCollection
-    domain string
-    prefix string
-    handler http.HandlerFunc
-    middleware []interface{}
-}
 
 func NewRouter() *Router {
     return &Router{
@@ -56,52 +46,6 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
     }
 }
 
-// Name sets the route's name
-func (route *Route) Name(name string) *Route {
-    route.name = name
-    
-    // Update the route collection if needed
-    if route.collection != nil {
-        identifier := generateRouteIdentifier(*route)
-        route.collection.updateNamedRoute(identifier, *route)
-    }
-    
-    return route
-}
-
-func (route *Route) Matches(uri string, method string) bool {
-    if route.method != method {
-        return false
-    }
-
-    if route.uri == uri {
-        return true
-    }
-
-    matches, _ := pathMatches(route.uri, uri);
-    return matches;
-}
-
-func (route *Route) Prefix(prefix string) *Route {
-    prefix = strings.Trim(prefix, "/")
-    if prefix != "" {
-        route.uri = prefix + "/" + strings.TrimPrefix(route.uri, "/")
-    }
-    return route
-}
-
-func (route *Route) Domain(domain string) *Route {
-    route.domain = domain
-    return route
-}
-
-func (route *Route) GetMethods() []string {
-    return []string{route.method}
-}
-
-func (route *Route) GetUri() string {
-    return route.uri
-}
 
 func (r *Router) Get(uri string, controller string, action string, callback *support.Callback) *Route {
     resolve(callback);
@@ -131,16 +75,6 @@ func (r *Router) Match(methods []string, uri string, controller string, action s
 func (r *Router) Any(uri string, controller string, action string, callback *support.Callback) *Route {
     resolve(callback);
     return r.add(VALID_METHODS, uri, controller, action, nil)
-}
-
-func (route *Route) Handler(handler http.HandlerFunc) *Route {
-    route.handler = handler;
-    return route;
-}
-
-func (route *Route) Middleware(middleware ...interface{}) *Route {
-    route.middleware = append(route.middleware, middleware...)
-    return route
 }
 
 func (r *Router) AddMiddleware(name string, middleware ...interface{}) *Router {
@@ -192,14 +126,6 @@ func resolve(callback *support.Callback) {
     if callback != nil {
         (*callback)();
     }
-}
-
-func (route *Route) getName() string {
-    return route.name
-}
-
-func (route *Route) setCollection(collection *RouteCollection) {
-    route.collection = collection
 }
 
 // pathMatches checks if a request path matches a route pattern

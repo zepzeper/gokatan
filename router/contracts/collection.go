@@ -2,7 +2,7 @@ package contracts
 
 type RouteCollection interface {
     // Route registration
-    Add(route Route) Route
+    add(route Route) Route
     
     // Route lookup
     Match(uri, method string) Route
