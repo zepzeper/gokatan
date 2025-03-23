@@ -1,8 +1,10 @@
 package app
 
 import (
-    netHttp "net/http"
-    "gokatan/config"
+	"gokatan/config"
+	"gokatan/roots/contracts"
+	"net/http"
+	netHttp "net/http"
 )
 
 type Application struct {
@@ -63,8 +65,7 @@ func (a *Application) LoadEnvironment() error {
     return err;
 }
 
-func handleRequest(a *Application, w netHttp.ResponseWriter, r *netHttp.Request) {
-
+func (a *Application) HandleRequest(w http.ResponseWriter, r *http.Request) {
     kernelInterface, exists := a.Resolve("http.kernel");
 
     if !exists {
@@ -72,16 +73,28 @@ func handleRequest(a *Application, w netHttp.ResponseWriter, r *netHttp.Request)
         return;
     }
 
-    kernel, ok := kernelInterface.(*http.Kernel)
+    kernel, ok := kernelInterface.(contracts.IKernel)
     if !ok {
         netHttp.Error(w, "Invalid kernel type", netHttp.StatusInternalServerError)
         return
     }
 
     err := kernel.Handle(r)
-
     if err != nil {
         netHttp.Error(w, "Internal Server Error", netHttp.StatusInternalServerError)
         return
     }
+}
+
+func (a *Application) RunServer() error {
+	portInterface, exists := a.Resolve("env.get")
+	port := "8000" 
+	
+	if exists {
+		if fn, ok := portInterface.(func(string, string) string); ok {
+			port = fn("APP_PORT", "8000")
+		}
+	}
+	
+	return http.ListenAndServe(":"+port, a.router)
 }

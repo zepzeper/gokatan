@@ -1,26 +1,22 @@
 package http
 
 import (
-	"gokatan/roots"
-	"gokatan/roots/bootstrap"
-	"net/http"
-	"time"
+    "gokatan/contracts"
+    "net/http"
+    "time"
 )
 
 type Kernel struct {
     requestStartTime time.Time
-    app *app.Application
-    bootstrappers []func(*app.Application) error
+    app contracts.IApplication
+    router contracts.IRouter
+    bootstrappers []func(contracts.IApplication) error
 }
 
-func NewKernel(application *app.Application) *Kernel {
+func NewKernel(application contracts.IApplication) *Kernel {
     return &Kernel{
         app: application,
-        bootstrappers: []func(*app.Application) error{
-            bootstrap.LoadEnvironmentVariables,
-            bootstrap.LoadConfiguration,
-            bootstrap.RegisterProviders,
-            bootstrap.BootProvider,
+        bootstrappers: []func(contracts.IApplication) error{
         },
     }
 }
@@ -35,25 +31,23 @@ func (k *Kernel) Bootstrap() error {
     return nil
 }
 
-func (k *Kernel) AddBootstrapper(bootstrapper func(*app.Application) error) {
+func (k *Kernel) AddBootstrapper(bootstrapper func(contracts.IApplication) error) {
     k.bootstrappers = append(k.bootstrappers, bootstrapper)
 }
 
-func (k* Kernel) Handle(r *http.Request) error {
-    k.requestStartTime = time.Now();
+func (k *Kernel) Handle(r *http.Request) error {
+    k.requestStartTime = time.Now()
 
-    k.Bootstrap();
-
-    k.app.Singleton("request", r);
-
-    resp, err := k.sendRequestThroughPipeline(r);
-
+    err := k.Bootstrap()
     if err != nil {
         return err
     }
 
-    return resp
+    k.app.Singleton("request", r)
 
+    // Fixed the return type issue
+    _, err = k.sendRequestThroughPipeline(r)
+    return err
 }
 
 func (k *Kernel) sendRequestThroughPipeline(r *http.Request) (interface{}, error) {

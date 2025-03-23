@@ -43,3 +43,11 @@ func Get(key string, defaultValue string) string {
 
     return defaultValue;
 }
+
+// func GetBool(key string, defaultValue bool) bool {
+//     if value, exists := os.LookupEnv(key); exists {
+//         return value;
+//     }
+//
+//     return defaultValue;
+// }

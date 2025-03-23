@@ -2,10 +2,10 @@ package bootstrap
 
 import (
 	"fmt"
-	"gokatan/roots"
+	"gokatan/roots/contracts"
 )
 
-func LoadEnvironmentVariables(app *app.Application) error {
+func LoadEnvironmentVariables(app contracts.IApplication) error {
     err := app.LoadEnvironment()
     if err != nil {
         fmt.Println("Error loading environment:", err)
@@ -28,17 +28,17 @@ func LoadEnvironmentVariables(app *app.Application) error {
     return nil
 }
 
-func LoadConfiguration(app *app.Application) error {
+func LoadConfiguration(app contracts.IApplication) error {
     // Implementation for loading configuration
     return nil
 }
 
-func RegisterProviders(app *app.Application) error {
+func RegisterProviders(app contracts.IApplication) error {
     // Implementation for registering providers
     return nil
 }
 
-func BootProvider(app *app.Application) error {
+func BootProvider(app contracts.IApplication) error {
     // Implementation for booting providers
     return nil
 }
