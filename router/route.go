@@ -1,9 +1,12 @@
 package router
 
 import (
+	"gokatan/router/contracts"
 	"net/http"
 	"strings"
 )
+
+var _ contracts.IRoute = (*Route)(nil)
 
 type Route struct {
     method string
@@ -18,18 +21,18 @@ type Route struct {
     middleware []interface{}
 }
 
-func (route *Route) Handler(handler http.HandlerFunc) *Route {
-    route.handler = handler;
-    return route;
+func (route *Route) Handler(handler http.HandlerFunc) contracts.IRoute {
+    route.handler = handler
+    return route
 }
 
-func (route *Route) Middleware(middleware ...interface{}) *Route {
+func (route *Route) Middleware(middleware ...interface{}) contracts.IRoute {
     route.middleware = append(route.middleware, middleware...)
     return route
 }
 
 // Name sets the route's name
-func (route *Route) Name(name string) *Route {
+func (route *Route) Name(name string) contracts.IRoute {
     route.name = name
     
     // Update the route collection if needed
@@ -50,11 +53,11 @@ func (route *Route) Matches(uri string, method string) bool {
         return true
     }
 
-    matches, _ := pathMatches(route.uri, uri);
-    return matches;
+    matches, _ := pathMatches(route.uri, uri)
+    return matches
 }
 
-func (route *Route) Prefix(prefix string) *Route {
+func (route *Route) Prefix(prefix string) contracts.IRoute {
     prefix = strings.Trim(prefix, "/")
     if prefix != "" {
         route.uri = prefix + "/" + strings.TrimPrefix(route.uri, "/")
@@ -62,7 +65,7 @@ func (route *Route) Prefix(prefix string) *Route {
     return route
 }
 
-func (route *Route) Domain(domain string) *Route {
+func (route *Route) Domain(domain string) contracts.IRoute {
     route.domain = domain
     return route
 }
@@ -75,8 +78,16 @@ func (route *Route) GetUri() string {
     return route.uri
 }
 
-func (route *Route) getName() string {
+func (route *Route) GetName() string {
     return route.name
+}
+
+func (route *Route) GetHandler() http.HandlerFunc {
+    return route.handler
+}
+
+func (route *Route) GetMiddleware() []interface{} {
+    return route.middleware
 }
 
 func (route *Route) setCollection(collection *RouteCollection) {

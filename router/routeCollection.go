@@ -4,9 +4,10 @@ import (
 	"crypto/md5"
 	"fmt"
 	"gokatan/router/contracts"
+	"strings"
 )
 
-var _ contracts.RouteCollection = (*RouteCollection)(nil)
+var _ contracts.IRouteCollection = (*RouteCollection)(nil)
 
 type RouteCollection struct {
     routes map[string]Route
@@ -23,121 +24,153 @@ func NewRouteCollection() *RouteCollection {
     }
 }
 
-func (rc *RouteCollection) Match(uri string, method string) *Route {
+func (rc *RouteCollection) Match(uri string, method string) contracts.IRoute {
     for _, route := range rc.routes {
+
         if route.Matches(uri, method) {
-            return &route
+            routeCopy := route
+            return &routeCopy
         }
     }
     return nil
 }
-func (rc *RouteCollection) GetByName(name string) contracts.Route {
+
+func (rc *RouteCollection) GetByName(name string) contracts.IRoute {
     if route, exists := rc.namedRoutes[name]; exists {
-        return &route
+        routeCopy := route
+        return &routeCopy
     }
     return nil
 }
 
-func (rc *RouteCollection) Group(attributes map[string]interface{}, callback func()) *RouteCollection {
-
-    previousGroup := rc.currentGroup;
+func (rc *RouteCollection) Group(attributes map[string]interface{}, callback func()) contracts.IRouteCollection {
+    previousGroup := rc.currentGroup
 
     if previousGroup != nil {
-        rc.currentGroup = rc.mergeGroups(previousGroup, attributes);
+        rc.currentGroup = rc.mergeGroups(previousGroup, attributes)
     } else {
-        rc.currentGroup = attributes;
+        rc.currentGroup = attributes
     }
 
-    rc.groups = append(rc.groups, rc.currentGroup);
+    rc.groups = append(rc.groups, rc.currentGroup)
 
-    callback();
+    callback()
 
-    rc.groups = rc.groups[:len(rc.groups) - 1];
-    rc.currentGroup = previousGroup;
+    rc.groups = rc.groups[:len(rc.groups) - 1]
+    rc.currentGroup = previousGroup
 
-    return rc
-
+    return rc;
 }
 
-func (rc *RouteCollection) add(route Route) *Route {
-
-    route.setCollection(rc);
+func (rc *RouteCollection) Add(route contracts.IRoute) contracts.IRoute {
+    routeImpl, ok := route.(*Route)
+    if !ok {
+        // Create a new Route with the information from the interface
+        newRoute := Route{
+            method: route.GetMethods()[0],
+            uri: route.GetUri(),
+            name: route.GetName(),
+            handler: route.GetHandler(),
+            middleware: route.GetMiddleware(),
+        }
+        routeImpl = &newRoute
+    }
     
-    identifier := generateRouteIdentifier(route);
+    routeImpl.setCollection(rc)
+    
+    identifier := generateRouteIdentifier(*routeImpl)
 
     if rc.currentGroup != nil {
-        rc.applyGroupSettingsToRoute(&route)
+        rc.applyGroupSettingsToRoute(routeImpl)
     }
 
-    rc.routes[identifier] = route;
+    rc.routes[identifier] = *routeImpl
     
-    name := route.getName()
+    name := routeImpl.GetName()
 
     if name != "" {
-        rc.addNamedRoute(route)
+        rc.addNamedRoute(*routeImpl)
     }
 
-    storedRoute := rc.routes[identifier];
-
+    storedRoute := rc.routes[identifier]
     return &storedRoute
 }
 
+func (rc *RouteCollection) GetRoutes() map[string]contracts.IRoute {
+    result := make(map[string]contracts.IRoute)
+    for k, v := range rc.routes {
+        routeCopy := v
+        result[k] = &routeCopy
+    }
+    return result
+}
+
+func (rc *RouteCollection) GetNamedRoutes() map[string]contracts.IRoute {
+    result := make(map[string]contracts.IRoute)
+    for k, v := range rc.namedRoutes {
+        routeCopy := v
+        result[k] = &routeCopy
+    }
+    return result
+}
+
 func (rc *RouteCollection) mergeGroups(previous map[string]interface{}, new map[string]interface{}) map[string]interface{} {
-    merged := make(map[string]interface{});
+    merged := make(map[string]interface{})
 
     for k,v := range previous {
-        merged[k] = v;
+        merged[k] = v
     }
 
     for k, v := range new {
         if k == "prefix" {
             // Special handling for prefix
-            prevPrefix, prevOk := previous["prefix"].(string);
-            newPrefix, newOk := v.(string);
+            prevPrefix, prevOk := previous["prefix"].(string)
+            newPrefix, newOk := v.(string)
 
             if prevOk && newOk {
                 // Join prefixes with a slash
-                merged[k] = fmt.Sprintf("%s/%s", strings.Trim(prevPrefix, "/"), strings.Trim(newPrefix, "/"));
+                merged[k] = fmt.Sprintf("%s/%s", strings.Trim(prevPrefix, "/"), strings.Trim(newPrefix, "/"))
             } else if newOk {
-                merged[k] = newPrefix;
+                merged[k] = newPrefix
             }
         } else if k == "middleware" {
             // Special handling for middleware
-            prevMiddleware, prevOk := previous["middleware"].([]interface{});
-            newMiddleware, newOk := v.([]interface{});
+            prevMiddleware, prevOk := previous["middleware"].([]interface{})
+            newMiddleware, newOk := v.([]interface{})
 
             if prevOk && newOk {
                 // Combine middleware arrays
-                merged[k] = append(prevMiddleware, newMiddleware...);
+                merged[k] = append(prevMiddleware, newMiddleware...)
             } else if newOk {
-                merged[k] = newMiddleware;
+                merged[k] = newMiddleware
             }
         } else {
             // Default case: just override
-            merged[k] = v;
+            merged[k] = v
         }
     }
 
-    return merged;
+    return merged
 }
  
 func (rc *RouteCollection) addNamedRoute(route Route) {
-    name := route.getName();
+    name := route.GetName()
 
-    if _, exitst := rc.namedRoutes[name]; exitst {
+    if _, exists := rc.namedRoutes[name]; exists {
         panic(fmt.Sprintf("route name '%s' has already been taken", name))
     }
 
-    rc.namedRoutes[name] = route;
+    rc.namedRoutes[name] = route
 }
 
 func (rc *RouteCollection) updateNamedRoute(identifier string, route Route) {
-    name := route.getName();
+    name := route.GetName()
 
-    if name != nil {
+    if name != "" {
         for k := range rc.namedRoutes {
-            if generateRouteIdentifier(k) == identifier {
-                rc.namedRoutes[name] = route;
+            oldRoute := rc.namedRoutes[k]
+            if generateRouteIdentifier(oldRoute) == identifier {
+                rc.namedRoutes[name] = route
             }
         }
     }
@@ -146,23 +179,23 @@ func (rc *RouteCollection) updateNamedRoute(identifier string, route Route) {
 func (rc *RouteCollection) applyGroupSettingsToRoute(route *Route) {
     if middleware, ok := rc.currentGroup["middleware"]; ok {
         if middlewareArray, ok := middleware.([]interface{}); ok {
-            route.Middleware(middlewareArray...);
+            route.Middleware(middlewareArray...)
         }
     }
 
     if prefix, ok := rc.currentGroup["prefix"].(string); ok {
-        route.Prefix(prefix);
+        route.Prefix(prefix)
     }
 
     if namePrefix, ok := rc.currentGroup["as"].(string); ok {
-        currentName := route.getName();
+        currentName := route.GetName()
         if currentName != "" {
-            route.Name(namePrefix + currentName);
+            route.Name(namePrefix + currentName)
         }
     }
 
     if domain, ok := rc.currentGroup["domain"].(string); ok {
-        route.Domain(domain);
+        route.Domain(domain)
     }
 }
 

@@ -5,24 +5,24 @@ import (
     "net/http"
 )
 
-type Router interface {
+type IRouter interface {
     // Route registration methods
-    Get(uri, controller, action string, callback *support.Callback) Route
-    Post(uri, controller, action string, callback *support.Callback) Route
-    Put(uri, controller, action string, callback *support.Callback) Route
-    Delete(uri, controller, action string, callback *support.Callback) Route
-    Match(methods []string, uri, controller, action string, callback *support.Callback) Route
-    Any(uri, controller, action string, callback *support.Callback) Route
+    Get(uri, controller, action string, callback *support.Callback) IRoute
+    Post(uri, controller, action string, callback *support.Callback) IRoute
+    Put(uri, controller, action string, callback *support.Callback) IRoute
+    Delete(uri, controller, action string, callback *support.Callback) IRoute
+    Match(methods []string, uri, controller, action string, callback *support.Callback) IRoute
+    Any(uri, controller, action string, callback *support.Callback) IRoute
     
     // Group management
-    Group(prefix string, callback func()) Router
+    Group(prefix string, callback func()) IRouter
     
     // Middleware management
-    AddMiddleware(name string, middleware ...interface{}) Router
-    AddMiddlewareGroups(name string, middleware ...interface{}) Router
+    AddMiddleware(name string, middleware ...interface{}) IRouter
+    AddMiddlewareGroups(name string, middleware ...interface{}) IRouter
     
     // Route finding
-    FindRoute(name string) Route
+    FindRoute(name string) IRoute
     
     // HTTP Handler implementation
     ServeHTTP(w http.ResponseWriter, r *http.Request)

@@ -1,15 +1,15 @@
 package contracts
 
-type RouteCollection interface {
+type IRouteCollection interface {
     // Route registration
-    add(route Route) Route
+    Add(route Route) Route
     
     // Route lookup
     Match(uri, method string) Route
     GetByName(name string) Route
     
     // Group management
-    Group(attributes map[string]interface{}, callback func()) RouteCollection
+    Group(attributes map[string]interface{}, callback func()) IRouteCollection
     
     // Getters
     GetRoutes() map[string]Route

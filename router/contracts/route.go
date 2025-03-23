@@ -2,18 +2,18 @@ package contracts
 
 import "net/http"
 
-type Route interface {
+type IRoute interface {
     // Path and method matching
     Matches(uri, method string) bool
     GetUri() string
     GetMethods() []string
     
     // Configuration
-    Name(name string) Route
-    Prefix(prefix string) Route
-    Domain(domain string) Route
-    Handler(handler http.HandlerFunc) Route
-    Middleware(middleware ...interface{}) Route
+    Name(name string) IRoute
+    Prefix(prefix string) IRoute
+    Domain(domain string) IRoute
+    Handler(handler http.HandlerFunc) IRoute
+    Middleware(middleware ...interface{}) IRoute
     
     // Getters
     GetName() string
